@@ -11,4 +11,13 @@
         grid-gap: 0.3em;
         justify-content: space-evenly;
     }
+
+    button.favButtonGrid {
+        grid-column: 2;
+        grid-row: auto;
+        width: 5vw;
+        max-width: 50px;
+        height: 5vw;
+        max-height: 50px;
+    }
 }

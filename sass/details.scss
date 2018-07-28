@@ -56,6 +56,11 @@
     padding: 15px 15px;
       max-width: 100%;
   }
+
+  #reviews-container {
+    display: flex;
+    flex-direction: column;
+  }
   
   #restaurant-hours {
     font-size: 1rem;
@@ -93,6 +98,18 @@
   #restaurant-hours td {
     color: #666;
   }
+
+  .stars {
+    color: #A13102;
+  }
+
+  button#add-button {
+    margin: 3px;
+    margin: 10px 0px;
+    align-self: flex-end;
+    padding: 10px 30px 10px;
+  }
+
 
 /* ====================== Main content ============================== */
 #restaurant-img {

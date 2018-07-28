@@ -1,8 +1,8 @@
 import registerServiceWorker from './common.js';
-import DBHelper from './dbhelper.js';
+import RetaurantsService from './restaurants_service.js';
 
-/**DBHelper instance  */
-let dbHelper;
+/**RetaurantsService instance  */
+let retaurantsService;
 
 /**
  * Register SW for current page
@@ -34,13 +34,13 @@ window.initMap = () => {
     const mapFrame = document.querySelector('#map iframe');
     mapFrame.setAttribute('title', `Google map with ${restaurant.name} restaurant location`);
   });
-  DBHelper.mapMarkerForRestaurant(restaurant, self.map);
+  RetaurantsService.mapMarkerForRestaurant(restaurant, self.map);
 }
 
 
 window.addEventListener('load', () => {
-  dbHelper = new DBHelper();
-  dbHelper.initData()
+  retaurantsService = new RetaurantsService();
+  retaurantsService.initData()
     .then(() => {
       fetchRestaurantFromURL()
         .then( restaurant => {
@@ -68,7 +68,7 @@ let fetchRestaurantFromURL = () => {
   if (!id) { // no id found in URL
     throw Error('No restaurant id in URL');
   } else {
-    return dbHelper.fetchRestaurantById(id);
+    return retaurantsService.getResaurantById(id);
   }
 }
 
@@ -79,13 +79,32 @@ let fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name');
   name.innerHTML = restaurant.name;
 
+  const isFavorite = document.getElementById('restaurant-is-favorite');
+
+  const changeFavoriteButtonAttributes = () => {
+    isFavorite.className = restaurant.is_favorite ? 'favorite' : 'make_favorite';
+    const title = restaurant.is_favorite ? 'Remove from favorite' : 'Add to favorite';
+    isFavorite.setAttribute('title', title);
+  };
+
+  changeFavoriteButtonAttributes();
+  
+  isFavorite.onclick =  function() {
+    retaurantsService.toggleFavorite(restaurant.id, !restaurant.is_favorite)
+      // if toggle succeeds, favorite value has changed
+      .then((result) => {
+        console.debug(`Toggle result=${result}`);
+        restaurant.is_favorite = !restaurant.is_favorite;
+        changeFavoriteButtonAttributes();
+      });
+  }
+
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
 
   const image = document.getElementById('restaurant-img');
-  //image.className = 'restaurant-img';
 
-  const defaultRestImageUrl = DBHelper.imageUrlForRestaurant(restaurant);
+  const defaultRestImageUrl = RetaurantsService.imageUrlForRestaurant(restaurant);
   if (defaultRestImageUrl) {
     const imageUrlWithoutExtention = defaultRestImageUrl.replace(/\.[^/.]+$/, "");
     image.src = `${imageUrlWithoutExtention}_550.webp`;
@@ -105,6 +124,7 @@ let fillRestaurantHTML = (restaurant = self.restaurant) => {
   // fill reviews
   fillReviewsHTML();
 }
+
 
 /**
  * Create restaurant operating hours HTML table and add it to the webpage.
@@ -131,10 +151,7 @@ let fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours)
  */
 let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const container = document.getElementById('reviews-container');
-  const title = document.createElement('h3');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
-
+ 
   if (!reviews) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';

@@ -6,9 +6,11 @@ export default function registerServiceWorker() {
       console.log("Page is already controlled");
       return;
     }
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
-      console.info("SW is successfully registered");
-    });
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(() => navigator.serviceWorker.ready)
+      .then(registration => {
+        console.info("SW is successfully registered");
+      });
   });
 }
 

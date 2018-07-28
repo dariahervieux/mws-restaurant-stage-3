@@ -83,15 +83,41 @@ var compact = args.compress || false;
 compact = (compact === 'true') ? true : false;
 
 
+// gulp.task('js:sw:copy', function () {
+//   return gulp.src(['sw.js'])
+//     .pipe(gulpif(compact, uglify(), gzip({ threshold: 1024 })))
+//     .pipe(gulp.dest('build'));
+// });
+
 gulp.task('js:sw:copy', function () {
-  return gulp.src(['sw.js'])
-    .pipe(gulpif(compact, uglify(), gzip({ threshold: 1024 })))
+  return gulp.src(['sw.js', './js/*.js', './node_modules/idb/**/*.js'])
+    .pipe(sourcemaps.init())
+    .pipe(rollup({
+      // entry points
+      input: ['./sw.js'],
+      output: {
+        format: 'es'
+      },
+      plugins: [
+        resolve(),
+        //there is bug with the current version ("rollup-plugin-commonjs": "^9.1.3"), using 8.4.1 instead
+        commonjs({
+          // if false then skip sourceMap generation for CommonJS modules
+          sourceMap: false
+        })
+      ]    
+    }))
+    .pipe(gulpif(compact, uglify()))
+    .pipe(sourcemaps.write())
+    .pipe(gulpif(compact,
+      gzip({ threshold: 1024 }))
+    )
     .pipe(gulp.dest('build'));
 });
 
-
+/** creating js ouput files for main and restaurant details page */
 gulp.task('js:copy', function () {
-  return gulp.src(['./js/restaurant_info.js','./js/common.js','./js/dbhelper.js','./js/main.js', './node_modules/idb/**/*.js']/*.concat(deps)*/)
+  return gulp.src(['./js/*.js', './node_modules/idb/**/*.js'])
     .pipe(sourcemaps.init())
     .pipe(rollup({
       // entry points
@@ -158,7 +184,7 @@ gulp.task('attach', function () {
 
 gulp.task('watch', function () {
   gulp.watch('sass/**/*.scss', gulp.series(['css:process']));
-  gulp.watch('js/**/*.js', gulp.series(['js:copy']))
+  gulp.watch('js/**/*.js', gulp.series(['js:copy', 'js:sw:copy']))
     .on('change', function (path) {
       log('File ' + path + ' was changed');
     });

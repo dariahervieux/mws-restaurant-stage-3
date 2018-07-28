@@ -1,8 +1,12 @@
-var staticCacheName = 'mws-restaurant-static-v1';
-var dynamicCacheName = 'mws-restaurant-dynamic-v1';
-var contentImgsCache = 'mws-restaurant-imgs';
+import RetaurantsService from './js/restaurants_service.js';
 
-var allCaches = [
+const staticCacheName = 'mws-restaurant-static-v1';
+const dynamicCacheName = 'mws-restaurant-dynamic-v1';
+const contentImgsCache = 'mws-restaurant-imgs';
+
+let retaurantsService = null;
+
+const allCaches = [
   staticCacheName,
   contentImgsCache,
   dynamicCacheName
@@ -59,6 +63,9 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
+  //handling only GET requests
+  if (event.request.method != 'GET') return;
+  
   var requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin === location.origin) {
@@ -127,4 +134,20 @@ async function servePhoto(request) {
   if (toReturn) return toReturn;
 
   throw errorToThrow;
+}
+
+self.addEventListener('sync', function(event) {
+  if (event.tag == 'syncRemoteRestaurant') {
+    event.waitUntil(sendResaurantFavoritesUpdate());
+    console.log(`SW: 'syncRemoteRestaurant' has finished`);
+  }
+});
+
+async function sendResaurantFavoritesUpdate() {
+  if(retaurantsService == null) {
+    retaurantsService = new RetaurantsService(false);
+    await retaurantsService.initData();
+    console.log(`SW: 'RetaurantsService' initialized`);
+  }
+  return retaurantsService.synchronizeRestaurants();
 }

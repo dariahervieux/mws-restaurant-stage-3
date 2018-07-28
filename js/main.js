@@ -1,9 +1,9 @@
 /* eslint-env browser */
 import registerServiceWorker from './common.js';
-import DBHelper from './dbhelper.js';
+import RetaurantsService from './restaurants_service.js';
 
-/**DBHelper instance  */
-let dbHelper;
+/**RestaurantService instance  */
+let restaurantService;
 
 /**
  * Register SW for current page
@@ -65,8 +65,8 @@ let setUpImgIntersectionObserver = () => {
  * Fetch neighborhoods and cuisines as soon as the page is fully loaded.
  */
 window.addEventListener('load', () => {
-  dbHelper = new DBHelper();
-  dbHelper.initData()
+  restaurantService = new RetaurantsService();
+  restaurantService.initData()
     .then(() => {
       fetchNeighborhoods();
       fetchCuisines();
@@ -88,7 +88,7 @@ window.updateRestaurants = () => {
   const cuisine = cSelect[cIndex].value;
   const neighborhood = nSelect[nIndex].value;
 
-  dbHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood)
+  restaurantService.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood)
     .then((restaurants) => {
       resetRestaurants(restaurants);
       fillRestaurantsHTML();
@@ -101,7 +101,7 @@ window.updateRestaurants = () => {
  * Fetch all neighborhoods and set their HTML.
  */
 let fetchNeighborhoods = () => {
-  dbHelper.fetchNeighborhoods()
+  restaurantService.fetchNeighborhoods()
     .then(neighborhoods => {
       self.neighborhoods = neighborhoods;
       fillNeighborhoodsHTML();
@@ -126,7 +126,7 @@ let fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
  * Fetch all cuisines and set their HTML.
  */
 let fetchCuisines = () => {
-  dbHelper.fetchCuisines()
+  restaurantService.fetchCuisines()
     .then(cuisines => {
       self.cuisines = cuisines;
       fillCuisinesHTML();
@@ -190,7 +190,7 @@ let createRestaurantImageDomElement = (restaurant) => {
   const image = document.createElement('img');
   image.className = 'restaurant-img';
 
-  const defaultRestImageUrl = DBHelper.imageUrlForRestaurant(restaurant);
+  const defaultRestImageUrl = RetaurantsService.imageUrlForRestaurant(restaurant);
   if (defaultRestImageUrl) {
     const imageUrlWithoutExtention = defaultRestImageUrl.replace(/\.[^/.]+$/, "");
     image.sizes = "28vw";
@@ -216,6 +216,8 @@ let createRestaurantHTML = (restaurant) => {
   name.innerHTML = restaurant.name;
   li.append(name);
 
+  li.append(createFavoriteToggleButton(restaurant));
+
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
   li.append(neighborhood);
@@ -226,10 +228,46 @@ let createRestaurantHTML = (restaurant) => {
 
   const more = document.createElement('a');
   more.innerHTML = 'View Details';
-  more.href = DBHelper.urlForRestaurant(restaurant);
+  more.href = RetaurantsService.urlForRestaurant(restaurant);
   li.append(more);
 
   return li;
+}
+
+let createFavoriteToggleButton = (restaurant) => {
+  const favorite = document.createElement('button');
+  let favoritePreviousValue = restaurant.is_favorite;
+  favorite.className = 'favButtonGrid ';
+  let currentClass;
+
+  const changeAttributes = () => {
+    if(currentClass) {
+      favorite.classList.remove(currentClass);
+    }
+    currentClass = favoritePreviousValue ? 'favorite' : 'make_favorite';
+    favorite.classList.add(currentClass);
+
+    const title = restaurant.is_favorite ? 'Remove from favorite' : 'Add to favorite';
+    //favorite.dataset.restaurant_id = restaurant.id;
+    favorite.setAttribute('title', title);
+  }
+
+  changeAttributes();
+
+  favorite.onclick =  function() {
+    window.toggleFavorite(restaurant.id, !favoritePreviousValue)
+      // if toggle succeeds, favorite value has changed
+      .then((result) => {
+        console.debug(`Toggle result=${result}`);
+        favoritePreviousValue = !favoritePreviousValue;        
+        changeAttributes();
+      });
+  };
+  return favorite;
+}
+
+window.toggleFavorite = (restaurantId, favoriteNewValue) => {
+  return restaurantService.toggleFavorite(restaurantId, favoriteNewValue);
 }
 
 /**
@@ -245,7 +283,7 @@ let addMarkersToMap = (restaurants = self.restaurants) => {
 
   restaurants.forEach(restaurant => {
     // Add marker to the map
-    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
+    const marker = RetaurantsService.mapMarkerForRestaurant(restaurant, self.map);
     google.maps.event.addListener(marker, 'click', () => {
       window.location.href = marker.url
     });
