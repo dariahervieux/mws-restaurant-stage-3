@@ -100,7 +100,6 @@ self.addEventListener('fetch', function(event) {
             console.error('Network Fetch failed, IGNORING', error);
             return new Response("Network not available",
               {status: 500, statusText: "No network", headers: {'Content-Type': 'text/plain'}});
-            return null;
           });
     })
   );

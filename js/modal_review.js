@@ -71,6 +71,7 @@ export default class AddReviewModalHandler {
         resolve(review);
       };
 
+      /**inspired by Udacity lesson on managing focus and modals */
       const trapTabKey = (e) => {
         // Check for TAB key press
         if (e.keyCode === 9) {

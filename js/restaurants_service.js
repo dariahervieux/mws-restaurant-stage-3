@@ -152,37 +152,40 @@ class RetaurantsService  {
     const allReviews = await this.reviewsDbStorage.getAllItems();
     
     const reviewUpdatePromises = [];
+
+    const self = this;
+
+    const synchReview = (review) => {
+      const temporaryId = review.id;
+      const data = {
+        restaurant_id: review.restaurant_id,
+        name: review.name,
+        rating: review.rating,
+        comments: review.comments
+      };
+
+      return fetch(`${self.reviewsDbStorage.objectsApiUrl}`,
+        {  method: 'POST',
+          body: JSON.stringify(data), 
+          headers:{
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(async response => {
+          if(response.ok) {
+            const data =  await response.json();
+    
+            console.debug(`Sync review OK`, data);
+            data.in_sync = true;
+            return Promise.all([self.reviewsDbStorage.storeItem(data),
+              self.reviewsDbStorage.deleteItemById(temporaryId)]);
+          }
+        });
+    }
     
     for (const review of allReviews) {
       if(!review.in_sync) {
-        const temporaryId = review.id;
-
-        const data = {
-          restaurant_id: review.restaurant_id,
-          name: review.name,
-          rating: review.rating,
-          comments: review.comments
-        };
-
-        //waiting to receive a response to delete corresponding temporary record
-        const response =
-          await fetch(`${this.reviewsDbStorage.objectsApiUrl}`,
-            {  method: 'POST',
-              body: JSON.stringify(data), 
-              headers:{
-                'Content-Type': 'application/json'
-              }
-            })
-
-        if(response.ok) {
-          const data =  await response.json();
-
-          console.debug(`Sync review OK`, data);
-          data.in_sync = true;
-          reviewUpdatePromises.push(this.reviewsDbStorage.storeItem(data));
-          reviewUpdatePromises.push(this.reviewsDbStorage.deleteItemById(temporaryId));
-        }
-
+        reviewUpdatePromises.push(synchReview(review));
       }
     }
 
