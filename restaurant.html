@@ -153,6 +153,10 @@
       max-width: 100%;
       width: 100%;
     }
+
+    #modal {
+      display: none;
+    }
   </style>
   <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
   <link rel="stylesheet" href="css/details.css">
@@ -211,7 +215,24 @@
     </div>
     
      <!-- modal dialog -->
-    <div id="modal">
+    <div id="modal" role="dialog" aria-labelledby="dialog1Title">
+      <h1 id="dialog1Title">Add review</h1>
+      <form>
+        <label>Your name *
+          <input title="Name" name="name" type="text" maxlength="256" pattern="^[\w\-\s]+$" required>
+        </label>
+        <label>Rating (from 1 to 5) *
+            <input title="Rating" name="rating"  type="number" min="1" max="5" maxlength="1" required>
+        </label>
+        <label>Comments (1000 characters max)
+            <!-- pattern="^[\w\-\s,\.]+$" -->
+            <textarea title="Comments" name="comments" maxlength="1000"></textarea>
+        </label>
+        <footer>
+            <button id="add-review-button">Add</button>
+            <button type="button" id="cancel-button">Cancel</button>
+        </footer>
+      </form>
     </div>
 
   </main>

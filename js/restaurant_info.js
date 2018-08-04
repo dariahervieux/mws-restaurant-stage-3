@@ -1,8 +1,11 @@
 import registerServiceWorker from './common.js';
 import RetaurantsService from './restaurants_service.js';
+import AddReviewModalHandler from './modal_review.js';
 
 /**RetaurantsService instance  */
 let retaurantsService;
+/**Modal dialog handler instance  */
+let addReviewModalHandler;
 
 /**
  * Register SW for current page
@@ -51,6 +54,7 @@ window.addEventListener('load', () => {
           }
           fillRestaurantHTML();
           fillBreadcrumb();
+          addReviewModalHandler = new AddReviewModalHandler();
           window.initMap();
         })
         .catch(error => console.error(error));
@@ -88,8 +92,8 @@ let fillRestaurantHTML = (restaurant = self.restaurant) => {
   };
 
   changeFavoriteButtonAttributes();
-  
-  isFavorite.onclick =  function() {
+
+  isFavorite.onclick =  () => {
     retaurantsService.toggleFavorite(restaurant.id, !restaurant.is_favorite)
       // if toggle succeeds, favorite value has changed
       .then((result) => {
@@ -97,6 +101,20 @@ let fillRestaurantHTML = (restaurant = self.restaurant) => {
         restaurant.is_favorite = !restaurant.is_favorite;
         changeFavoriteButtonAttributes();
       });
+  }
+
+  const addReviewButton =  document.getElementById('add-button');
+  if (addReviewButton) {
+    addReviewButton.onclick = ()=> { 
+      addReviewModalHandler.open()
+        .then(reviewFormData => { 
+          if(reviewFormData) {
+            retaurantsService.addReview(restaurant.id, reviewFormData).then( () =>
+              addReviewHTMl(reviewFormData)
+            );            
+          }
+        });
+    }
   }
 
   const address = document.getElementById('restaurant-address');
@@ -165,6 +183,11 @@ let fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   container.appendChild(ul);
 }
 
+let addReviewHTMl = (review) => {
+  const ul = document.getElementById('reviews-list');
+  ul.appendChild(createReviewHTML(review));
+}
+
 /**
  * Create review HTML and add it to the webpage.
  */
@@ -175,7 +198,7 @@ let createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString("en-US");
   li.appendChild(date);
 
   const rating = document.createElement('p');

@@ -1,6 +1,8 @@
 import * as idb from 'idb';
 import StorageService from './storage_service.js';
 
+let temporaryId = Number.MAX_SAFE_INTEGER;
+
 class RetaurantsService  {
 
   /**
@@ -99,6 +101,22 @@ class RetaurantsService  {
     return registration.sync.register('syncRemoteRestaurant');
   }
 
+  /**
+   * Returns a Promise which resolves when sync event is registered
+   * @param {*} restaurantId 
+   * @param {*} review 
+   */
+  async addReview(restaurantId, review) {
+    review.id = temporaryId--;
+    review.createdAt = new Date().getTime();//ecpoch millis
+    review.in_sync = false;
+    review.restaurant_id = restaurantId;
+
+    await this.reviewsDbStorage.storeItem(review);
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    registration.sync.register('syncRemoteReview');    
+  }
+
   async synchronizeRestaurants() {
     const allRestaurants = await this.restaurantsDbStorage.getAllItems();
 
@@ -128,6 +146,47 @@ class RetaurantsService  {
     }
 
     return Promise.all(restaurantUpdatePromises);
+  }
+
+  async synchronizeReviews() {
+    const allReviews = await this.reviewsDbStorage.getAllItems();
+    
+    const reviewUpdatePromises = [];
+    
+    for (const review of allReviews) {
+      if(!review.in_sync) {
+        const temporaryId = review.id;
+
+        const data = {
+          restaurant_id: review.restaurant_id,
+          name: review.name,
+          rating: review.rating,
+          comments: review.comments
+        };
+
+        //waiting to receive a response to delete corresponding temporary record
+        const response =
+          await fetch(`${this.reviewsDbStorage.objectsApiUrl}`,
+            {  method: 'POST',
+              body: JSON.stringify(data), 
+              headers:{
+                'Content-Type': 'application/json'
+              }
+            })
+
+        if(response.ok) {
+          const data =  await response.json();
+
+          console.debug(`Sync review OK`, data);
+          data.in_sync = true;
+          reviewUpdatePromises.push(this.reviewsDbStorage.storeItem(data));
+          reviewUpdatePromises.push(this.reviewsDbStorage.deleteItemById(temporaryId));
+        }
+
+      }
+    }
+
+    return Promise.all(reviewUpdatePromises);
   }
 
 

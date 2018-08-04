@@ -83,12 +83,6 @@ var compact = args.compress || false;
 compact = (compact === 'true') ? true : false;
 
 
-// gulp.task('js:sw:copy', function () {
-//   return gulp.src(['sw.js'])
-//     .pipe(gulpif(compact, uglify(), gzip({ threshold: 1024 })))
-//     .pipe(gulp.dest('build'));
-// });
-
 gulp.task('js:sw:copy', function () {
   return gulp.src(['sw.js', './js/*.js', './node_modules/idb/**/*.js'])
     .pipe(sourcemaps.init())

@@ -89,12 +89,19 @@ self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request).then(function(cacheResponse) {
       return cacheResponse || 
-        fetch(event.request).then(function(networkResponse) {
-          return caches.open(dynamicCacheName).then(function(cache) {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
+        fetch(event.request)
+          .then(function(networkResponse) {
+            return caches.open(dynamicCacheName).then(function(cache) {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            });
+          })
+          .catch(error => {
+            console.error('Network Fetch failed, IGNORING', error);
+            return new Response("Network not available",
+              {status: 500, statusText: "No network", headers: {'Content-Type': 'text/plain'}});
+            return null;
           });
-        });
     })
   );
 });
@@ -141,13 +148,26 @@ self.addEventListener('sync', function(event) {
     event.waitUntil(sendResaurantFavoritesUpdate());
     console.log(`SW: 'syncRemoteRestaurant' has finished`);
   }
+  if (event.tag == 'syncRemoteReview') {
+    event.waitUntil(sendResaurantReviews());
+    console.log(`SW: 'syncRemoteRestaurant' has finished`);
+  }
 });
 
 async function sendResaurantFavoritesUpdate() {
+  initRetaurantsService();
+  return retaurantsService.synchronizeRestaurants();
+}
+
+async function sendResaurantReviews() {
+  initRetaurantsService();
+  return retaurantsService.synchronizeReviews();
+}
+
+async function initRetaurantsService() {
   if(retaurantsService == null) {
     retaurantsService = new RetaurantsService(false);
     await retaurantsService.initData();
     console.log(`SW: 'RetaurantsService' initialized`);
   }
-  return retaurantsService.synchronizeRestaurants();
 }

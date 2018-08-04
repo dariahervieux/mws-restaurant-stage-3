@@ -96,6 +96,22 @@ class StorageService {
   }
 
   /**
+   * Returns a Promise which resolves when a record is deleted
+   * @param {*} id 
+   */
+  async deleteItemById(id) {
+    if (!this.dbPromise) return;
+    const db = await this.dbPromise;
+    if (!db) return;
+    
+    const tx = db.transaction(this.objectStoreName, 'readwrite');
+    const store = tx.objectStore(this.objectStoreName);
+
+    return store.delete(parseInt(id));
+
+  }
+
+  /**
    * Get the specified index reference
    */
   getIndexedData(indexName, indexedFieldValue) {
